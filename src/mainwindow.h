@@ -54,6 +54,7 @@ private:
     bool running;
     bool paused;
     bool justPausedNow;
+    bool isSettingsDialogOpen;
     int remainingHistoryCount;
     QVector<double> liveTempHistory;
     QVector<double> runTempHistoryX;

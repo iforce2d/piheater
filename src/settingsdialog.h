@@ -4,16 +4,16 @@
 #include <QDialog>
 
 namespace Ui {
-class ConfigDialog;
+class SettingsDialog;
 }
 
-class ConfigDialog : public QDialog
+class SettingsDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit ConfigDialog(QWidget *parent = nullptr);
-    ~ConfigDialog();
+    explicit SettingsDialog(QWidget *parent = nullptr);
+    ~SettingsDialog();
 
 signals:
     void sliderChanged();
@@ -31,7 +31,7 @@ private slots:
 
 private:
     class MainWindow* mainwindow;
-    Ui::ConfigDialog *ui;
+    Ui::SettingsDialog *ui;
 };
 
 #endif // SETTINGSDIALOG_H

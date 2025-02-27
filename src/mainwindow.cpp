@@ -8,10 +8,11 @@
 #include "configureprofiledialog.h"
 #include "settingsdialog.h"
 
-#define TICK_MS             1000
-#define PRE_HISTORY_SEC     20
-#define POST_HISTORY_SEC    600
-#define GRADIENT_SEC        10
+#define TICK_MS             1000    // milliseconds between temperature readings
+#define PRE_HISTORY_SEC     20      // seconds of temperature history to record before a run
+#define POST_HISTORY_SEC    600     // seconds of temperature history to record after a run
+#define LIVE_TEMP_SEC       30      // seconds of live reading to show on plot (green line)
+#define GRADIENT_SEC        10      // seconds over which to calculate the degrees per second rate (should be <= LIVE_TEMP_SEC)
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
 {
@@ -19,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     running = false;
     paused = false;
     justPausedNow = false;
+    isSettingsDialogOpen = false;
     remainingHistoryCount = 0;
 
     ui->setupUi(this);
@@ -115,12 +117,20 @@ void MainWindow::on_hardwareUpdateTimer()
 
     ui->sensorStatusLabel->setText(  QString::asprintf("Sensor: %0.2f%s", getTemperatureSensor(), buf) );
 
-    while ( liveTempHistory.size() > (60*1000)/TICK_MS )
+    while ( liveTempHistory.size() > (LIVE_TEMP_SEC*1000)/TICK_MS )
         liveTempHistory.pop_front();
     liveTempHistory.append( getTemperatureSensor() );
 
-    if ( getFaultFlags() )
+    int ff = getFaultFlags();
+    if ( ff ) {
         ui->faultStatusLabel->show();
+        if ( ff & MAX31855_FAULT_OC )
+            ui->faultStatusLabel->setText( "(open)" );
+        else if ( ff & MAX31855_FAULT_GND )
+            ui->faultStatusLabel->setText( "(gnd)" );
+        else if ( ff & MAX31855_FAULT_VCC )
+            ui->faultStatusLabel->setText( "(vcc)" );
+    }
     else
         ui->faultStatusLabel->hide();
 
@@ -163,11 +173,14 @@ void MainWindow::on_hardwareUpdateTimer()
         }
     }
     else {
-        float idleTemp = Settings::getInstance().getIdleTemp();
-        if ( getTemperatureSensor() >= idleTemp + 2 )
-            setCoolingOn( true );
-        else if ( getTemperatureSensor() <= idleTemp - 2 )
-            setCoolingOn( false );
+        // when no profile is active, obey idle temp setting
+        if ( ! isSettingsDialogOpen ) {
+            float idleTemp = Settings::getInstance().getIdleTemp();
+            if ( getTemperatureSensor() >= idleTemp + 2 )
+                setCoolingOn( true );
+            else if ( getTemperatureSensor() <= idleTemp - 2 )
+                setCoolingOn( false );
+        }
     }
 
     updateHardwareOutputsDisplay();
@@ -257,13 +270,16 @@ void MainWindow::on_backButton_clicked()
 
 void MainWindow::on_settingsButton_clicked()
 {
-    ConfigDialog dialog(this);
+    SettingsDialog dialog(this);
+    isSettingsDialogOpen = true;
     dialog.exec();
+    isSettingsDialogOpen = false;
 
     setPWMPercent(0);
     setRelayOn(false);
     setCoolingOn(false);
     setBuzzerOn(false);
+
     updateHardwareOutputsDisplay();
     Settings::getInstance().saveSettings();
 }
@@ -441,7 +457,7 @@ void MainWindow::updatePlot()
             cp->setInteractions(QCP::iNone);
         }
 
-        liveAxisX->setRange(-60, 0);
+        liveAxisX->setRange(-LIVE_TEMP_SEC, 0);
         liveAxisY->setRange(miny - 5, maxy + 5);
 
         liveAxisX->setBasePen( QPen(fgColor) );
@@ -449,7 +465,7 @@ void MainWindow::updatePlot()
         liveAxisX->setTickLabelColor( fgColor );
         liveAxisY->setTickLabelColor( fgColor );
 
-        cp->addGraph(liveAxisX, liveAxisY); // graph 0, last 60 sec (top and right axes)
+        cp->addGraph(liveAxisX, liveAxisY); // graph 0, last LIVE_TEMP_SEC sec (top and right axes)
         cp->graph(cp->graphCount()-1)->setData(xs, liveTempHistory);
         QPen pen = QPen( liveReadingColor );
         pen.setWidth(2);
@@ -505,7 +521,7 @@ void MainWindow::updatePlot()
         cp->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
     }
 
-    cp->replot();    
+    cp->replot();
 }
 
 void MainWindow::repositionPlot()

@@ -196,11 +196,6 @@ uint32_t spiRead32(void) {
     return d;
 }
 
-#define MAX31855_FAULT_ALL  (0x07)
-#define MAX31855_FAULT_OC   (0x01)
-#define MAX31855_FAULT_GND  (0x02)
-#define MAX31855_FAULT_VCC  (0x04)
-
 void readMAX31855() {
 
     int32_t v = spiRead32();

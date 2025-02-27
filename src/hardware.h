@@ -1,6 +1,11 @@
 #ifndef HARDWARE_H
 #define HARDWARE_H
 
+#define MAX31855_FAULT_ALL  (0x07)
+#define MAX31855_FAULT_OC   (0x01)
+#define MAX31855_FAULT_GND  (0x02)
+#define MAX31855_FAULT_VCC  (0x04)
+
 bool initHardware();
 void setHardwareSafeValues();
 void updateHardwareInputs();
