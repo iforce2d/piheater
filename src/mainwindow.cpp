@@ -11,7 +11,7 @@
 #define TICK_MS             1000    // milliseconds between temperature readings
 #define PRE_HISTORY_SEC     20      // seconds of temperature history to record before a run
 #define POST_HISTORY_SEC    600     // seconds of temperature history to record after a run
-#define LIVE_TEMP_SEC       30      // seconds of live reading to show on plot (green line)
+#define LIVE_TEMP_SEC       60      // seconds of live reading to show on plot (green line)
 #define GRADIENT_SEC        10      // seconds over which to calculate the degrees per second rate (should be <= LIVE_TEMP_SEC)
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
